@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina PRO - Admin Panel</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 12px;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #00f9f9;
+            margin-bottom: 8px;
+            font-size: 22px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .config-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .config-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .config-field label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .config-field input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #00f9f9;
+            color: #000;
+        }
+        .btn-primary:hover, .btn-primary:active {
+            background: #00d4d4;
+        }
+        .btn-success {
+            background: #00cc00;
+            color: #000;
+        }
+        .btn-success:hover, .btn-success:active {
+            background: #00aa00;
+        }
+        .btn-danger {
+            background: #ff4444;
+            color: #fff;
+        }
+        .btn-danger:hover, .btn-danger:active {
+            background: #dd2222;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .queue-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .queue-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00f9f9;
+        }
+        .queue-count {
+            background: #00f9f9;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .queue-empty {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .queue-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 4px solid #00f9f9;
+        }
+        .queue-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .queue-item-email {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+            word-break: break-all;
+        }
+        .queue-item-time {
+            font-size: 11px;
+            color: #666;
+        }
+        .queue-item-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .detail-box {
+            background: rgba(255,255,255,0.05);
+            padding: 8px 10px;
+            border-radius: 6px;
+        }
+        .detail-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .detail-value {
+            font-family: monospace;
+            font-size: 12px;
+            color: #00f9f9;
+            word-break: break-all;
+        }
+        .detail-value a {
+            color: #00f9f9;
+            text-decoration: none;
+        }
+        .password-preview {
+            background: rgba(0,204,0,0.1);
+            border: 1px solid rgba(0,204,0,0.3);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        .password-preview-label {
+            font-size: 10px;
+            color: #00cc00;
+            margin-bottom: 4px;
+        }
+        .password-preview-value {
+            font-family: monospace;
+            font-size: 18px;
+            color: #00cc00;
+            letter-spacing: 2px;
+        }
+        .queue-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .queue-item-actions .btn {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        .status-msg {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+            font-size: 14px;
+        }
+        .status-msg.success {
+            display: block;
+            background: rgba(0,204,0,0.2);
+            color: #00cc00;
+        }
+        .status-msg.error {
+            display: block;
+            background: rgba(255,68,68,0.2);
+            color: #ff4444;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            h1 { font-size: 20px; }
+            .config-panel, .queue-panel { padding: 12px; }
+            .queue-item { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Lumina PRO Admin</h1>
+        <p class="subtitle">License Queue Management</p>
+        
+        <!-- Config Panel -->
+        <div class="config-panel">
+            <div class="config-row">
+                <div class="config-field">
+                    <label>Admin Secret</label>
+                    <input type="password" id="admin-secret" placeholder="Your secret key">
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="saveConfig()">💾 Save</button>
+                    <button class="btn btn-primary" onclick="loadQueue()">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Queue Panel -->
+        <div class="queue-panel">
+            <div class="queue-header">
+                <span class="queue-title">📋 Pending</span>
+                <span class="queue-count" id="queue-count">0</span>
+            </div>
+            
+            <div id="queue-list">
+                <div class="queue-empty">Enter secret and tap Save</div>
+            </div>
+            
+            <div id="status-msg" class="status-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        // Pre-configured GAS URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxUCdCgW02Yp88eePLHr-1g4zzkUn99XLr-ZYBTn9u2HB-tiTTlE9JGzdhRPO5-jq2Z/exec';
+        
+        let queueData = [];
+        let jsonpCounter = 0;
+
+        // JSONP helper
+        function jsonp(url) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'cb_' + (++jsonpCounter) + '_' + Date.now();
+                const script = document.createElement('script');
+                
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Timeout'));
+                }, 20000);
+                
+                function cleanup() {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                }
+                
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+                
+                script.onerror = function() {
+                    cleanup();
+                    reject(new Error('Network error'));
+                };
+                
+                script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+                document.body.appendChild(script);
+            });
+        }
+
+        function loadConfig() {
+            document.getElementById('admin-secret').value = localStorage.getItem('lumina_secret') || '';
+        }
+
+        function saveConfig() {
+            localStorage.setItem('lumina_secret', document.getElementById('admin-secret').value.trim());
+            showStatus('Saved!', 'success');
+            loadQueue();
+        }
+
+        async function loadQueue() {
+            const secret = localStorage.getItem('lumina_secret');
+            
+            if (!secret) {
+                document.getElementById('queue-list').innerHTML = 
+                    '<div class="queue-empty">⚙️ Enter secret above</div>';
+                document.getElementById('queue-count').textContent = '0';
+                return;
+            }
+            
+            document.getElementById('queue-list').innerHTML = '<div class="loading">Loading</div>';
+            
+            try {
+                const url = GAS_URL + '?action=list&secret=' + encodeURIComponent(secret);
+                const data = await jsonp(url);
+                
+                if (data.success) {
+                    queueData = data.requests || [];
+                    renderQueue();
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (e) {
+                document.getElementById('queue-list').innerHTML = 
+                    '<div class="queue-empty">❌ ' + e.message + '</div>';
+                document.getElementById('queue-count').textContent = '0';
+            }
+        }
+
+        function renderQueue() {
+            const container = document.getElementById('queue-list');
+            document.getElementById('queue-count').textContent = queueData.length;
+            
+            if (queueData.length === 0) {
+                container.innerHTML = '<div class="queue-empty">✅ No pending requests</div>';
+                return;
+            }
+            
+            container.innerHTML = queueData.map((req) => `
+                <div class="queue-item" id="item-${req.rowIndex}">
+                    <div class="queue-item-header">
+                        <span class="queue-item-email">${req.email}</span>
+                        <span class="queue-item-time">${formatDate(req.timestamp)}</span>
+                    </div>
+                    
+                    <div class="queue-item-details">
+                        <div class="detail-box">
+                            <div class="detail-label">Transaction ID</div>
+                            <div class="detail-value">
+                                <a href="https://www.paypal.com/activity/payment/${req.transactionId}" target="_blank">
+                                    ${req.transactionId} 🔗
+                                </a>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <div class="detail-label">UID</div>
+                            <div class="detail-value">${req.uid}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="password-preview">
+                        <div class="password-preview-label">PASSWORD</div>
+                        <div class="password-preview-value">${req.password}</div>
+                    </div>
+                    
+                    <div class="queue-item-actions">
+                        <button class="btn btn-success" onclick="approveRequest(${req.rowIndex}, '${req.email}')">
+                            ✓ Approve
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectRequest(${req.rowIndex})">
+                            ✗ Reject
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function approveRequest(rowIndex, email) {
+            const secret = localStorage.getItem('lumina_secret');
+            
+            const item = document.getElementById('item-' + rowIndex);
+            const buttons = item.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            buttons[0].textContent = '...';
+            
+            try {
+                const url = GAS_URL + '?action=approve&secret=' + encodeURIComponent(secret) + '&rowIndex=' + rowIndex;
+                const data = await jsonp(url);
+                
+                if (data.success) {
+                    item.style.borderLeftColor = '#00cc00';
+                    item.style.opacity = '0.5';
+                    buttons[0].textContent = '✓ Sent!';
+                    buttons[1].style.display = 'none';
+                    showStatus('License sent to ' + email, 'success');
+                    
+                    setTimeout(() => loadQueue(), 2000);
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (e) {
+                buttons.forEach(b => b.disabled = false);
+                buttons[0].textContent = '✓ Approve';
+                showStatus('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function rejectRequest(rowIndex) {
+            if (!confirm('Reject this request?')) return;
+            
+            const secret = localStorage.getItem('lumina_secret');
+            const item = document.getElementById('item-' + rowIndex);
+            const buttons = item.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            
+            try {
+                const url = GAS_URL + '?action=reject&secret=' + encodeURIComponent(secret) + '&rowIndex=' + rowIndex;
+                const data = await jsonp(url);
+                
+                if (data.success) {
+                    item.style.borderLeftColor = '#ff4444';
+                    item.style.opacity = '0.3';
+                    showStatus('Rejected', 'success');
+                    setTimeout(() => loadQueue(), 1500);
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (e) {
+                buttons.forEach(b => b.disabled = false);
+                showStatus('Error: ' + e.message, 'error');
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status-msg');
+            el.textContent = msg;
+            el.className = 'status-msg ' + type;
+            setTimeout(() => { el.className = 'status-msg'; }, 4000);
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            if (localStorage.getItem('lumina_secret')) loadQueue();
+        }, 60000);
+
+        // Init
+        loadConfig();
+        if (localStorage.getItem('lumina_secret')) loadQueue();
+    </script>
+</body>
+</html>
