@@ -47,6 +47,7 @@
     </div>
 
     <script>
+      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzZGTZb0mlbrvLADVSHGOqrATSvZfF2jlxw3zeIp_WzOmXcCjeaaV11wWDROBeuV2XKBQ/exec';
       let jsonpId = 0;
       function jsonp(url) {
         return new Promise((resolve, reject) => {
@@ -72,7 +73,7 @@
       }
 
       function loadSaved() {
-        const u = localStorage.getItem('lumina_gas_url') || '';
+        const u = localStorage.getItem('lumina_gas_url') || DEFAULT_GAS_URL;
         const s = localStorage.getItem('lumina_admin_secret') || '';
         document.getElementById('gasUrl').value = u;
         document.getElementById('secret').value = s;
@@ -100,12 +101,16 @@
         }
       }
 
+      let lastByRowIndex = {};
+
       function render(items) {
         const root = document.getElementById('list');
         if (!items.length) {
           root.innerHTML = '<div style="margin-top:12px;color:#aaa">No pending requests</div>';
           return;
         }
+        lastByRowIndex = {};
+        items.forEach((r) => { if (r && r.rowIndex != null) lastByRowIndex[r.rowIndex] = r; });
         root.innerHTML = items.map(r => {
           const isMig = r.type === 'MIGRATION';
           const badge = isMig ? '<span class="badge bMig">MIGRATION</span>' : '<span class="badge bNew">NEW</span>';
@@ -119,7 +124,7 @@
               <div class="kv"><div class="k">UID</div><div class="v">${r.uid || ''}</div></div>
               <div class="pw"><div class="k">Password</div><div class="v">${r.password || ''}</div></div>
               <div class="actions">
-                <button class="aOk" onclick="approve(${r.rowIndex}, '${(r.email||'').replace(/'/g, \"\\\\'\")}')">Approve & Send</button>
+                <button class="aOk" onclick="approve(${r.rowIndex})">Approve & Send</button>
                 <button class="aNo" onclick="rejectReq(${r.rowIndex})">Reject</button>
               </div>
             </div>
@@ -127,14 +132,15 @@
         }).join('');
       }
 
-      async function approve(rowIndex, email) {
+      async function approve(rowIndex) {
         const gasUrl = (localStorage.getItem('lumina_gas_url') || '').trim();
         const secret = (localStorage.getItem('lumina_admin_secret') || '').trim();
         const url = gasUrl + '?action=approve&secret=' + encodeURIComponent(secret) + '&rowIndex=' + rowIndex;
         try {
           const data = await jsonp(url);
           if (!data || !data.success) throw new Error((data && data.error) || 'Failed');
-          show('Sent to ' + email, 'ok');
+          const email = (lastByRowIndex[rowIndex] && lastByRowIndex[rowIndex].email) ? lastByRowIndex[rowIndex].email : '';
+          show('Sent ' + (email ? ('to ' + email) : ''), 'ok');
           setTimeout(refresh, 1200);
         } catch (e) {
           show(String(e.message || e), 'err');
