@@ -41,13 +41,17 @@
       <div class="row" style="margin-top:8px">
         <button class="btn" id="saveBtn">Save</button>
         <button class="btn2" id="refreshBtn">Refresh</button>
+        <button class="btn2" id="pingBtn">Ping</button>
+        <button class="btn2" id="resetBtn">Reset</button>
       </div>
       <div id="msg" class="msg"></div>
       <div id="list"></div>
     </div>
 
     <script>
-      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyleCaZ1tXSy-8WZdrbQ-fDBhSi1dWmQJZlJ5FULD_y_u7LZTE8913lqAO3Z1kqvfHHCQ/exec';
+      // Set your own Apps Script Web App URL (…/exec) here or just paste it in the UI.
+      // NOTE: If you previously used this page, your last URL may be saved in localStorage.
+      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzqJL9OGsBeQpcIPSWBtb1KD9sfRDkxrqJiLgbNBRfS35PViiUZhN6zl8Wuvha9vRSJ4A/exec';
       let jsonpId = 0;
       function jsonp(url) {
         return new Promise((resolve, reject) => {
@@ -85,15 +89,54 @@
         show('Saved', 'ok');
       }
 
+      function getGasUrl_() {
+        const fromInput = (document.getElementById('gasUrl').value || '').trim();
+        if (fromInput) return fromInput;
+        return (localStorage.getItem('lumina_gas_url') || '').trim();
+      }
+
+      function getSecret_() {
+        const fromInput = (document.getElementById('secret').value || '').trim();
+        if (fromInput) return fromInput;
+        return (localStorage.getItem('lumina_admin_secret') || '').trim();
+      }
+
+      function resetSaved() {
+        try {
+          localStorage.removeItem('lumina_gas_url');
+          localStorage.removeItem('lumina_admin_secret');
+        } catch (e) {
+          // ignore
+        }
+        loadSaved();
+        show('Reset: defaults loaded', 'ok');
+      }
+
+      async function ping() {
+        const gasUrl = getGasUrl_();
+        if (!gasUrl) return show('Set GAS URL first', 'err');
+        const url = gasUrl;
+        try {
+          const data = await jsonp(url);
+          if (data && data.status && data.version) return show('OK: ' + data.status + ' | ' + data.version, 'ok');
+          show('Response: ' + JSON.stringify(data), 'ok');
+        } catch (e) {
+          show(String(e.message || e), 'err');
+        }
+      }
+
       async function refresh() {
-        const gasUrl = (localStorage.getItem('lumina_gas_url') || '').trim();
-        const secret = (localStorage.getItem('lumina_admin_secret') || '').trim();
+        const gasUrl = getGasUrl_();
+        const secret = getSecret_();
         if (!gasUrl || !secret) return show('Set GAS URL and secret', 'err');
         const url = gasUrl + '?action=list&secret=' + encodeURIComponent(secret);
         document.getElementById('list').innerHTML = '';
         try {
           const data = await jsonp(url);
-          if (!data || !data.success) throw new Error((data && data.error) || 'Unauthorized');
+          if (data && data.status && !data.success) {
+            throw new Error('Wrong endpoint/deploy (got status response). Open GAS /exec to check version.');
+          }
+          if (!data || !data.success) throw new Error((data && data.error) || 'Unauthorized (secret wrong or not set in GAS)');
           render(data.requests || []);
           show('OK', 'ok');
         } catch (e) {
@@ -164,6 +207,8 @@
 
       document.getElementById('saveBtn').addEventListener('click', () => { save(); refresh(); });
       document.getElementById('refreshBtn').addEventListener('click', refresh);
+      document.getElementById('pingBtn').addEventListener('click', ping);
+      document.getElementById('resetBtn').addEventListener('click', resetSaved);
       loadSaved();
     </script>
   </body>
