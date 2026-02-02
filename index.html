@@ -51,7 +51,9 @@
     <script>
       // Set your own Apps Script Web App URL (…/exec) here or just paste it in the UI.
       // NOTE: If you previously used this page, your last URL may be saved in localStorage.
-      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxZZLRwiy3lQTbTQyYM7a4mwwiJN1r8NfWZ7XFLiba_EDMfNVU4TB-2snpdOM3BsyCjcQ/exec';
+      // IMPORTANT: do not hardcode your real /exec URL in the repo.
+      // Leave this empty and paste it in the UI (it will be saved in localStorage).
+      const DEFAULT_GAS_URL = '';
       let jsonpId = 0;
       function jsonp(url) {
         return new Promise((resolve, reject) => {
@@ -162,14 +164,44 @@
           const badge = isMig ? '<span class="badge bMig">MIGRATION</span>' : '<span class="badge bNew">NEW</span>';
           const border = isMig ? '#ffa500' : '#00f9f9';
           const txn = r.transactionId || r.transaction_id || '';
-          const payLink = 'https://www.paypal.com/activity/payment/' + encodeURIComponent(txn || '');
+          const payFirst = r.paypalFirstName || r.paypal_first_name || '';
+          const payLast = r.paypalLastName || r.paypal_last_name || '';
+          const payName = String((payFirst + ' ' + payLast) || '').trim();
+          const ppStatus = r.paypal_check_status || r.paypalCheckStatus || '';
+          const ppAmount = r.paypal_check_amount || r.paypalCheckAmount || '';
+          const ppCurrency = r.paypal_check_currency || r.paypalCheckCurrency || '';
+          const ppPayer = r.paypal_check_payer || r.paypalCheckPayer || '';
+          const ppSubj = r.paypal_check_subject || r.paypalCheckSubject || '';
+          const ppDate = r.paypal_check_date || r.paypalCheckDate || '';
+          const ppTxn = r.paypal_check_extracted_txn || r.paypalCheckExtractedTxn || '';
+          const payLink = txn ? ('https://www.paypal.com/activity/payment/' + encodeURIComponent(txn || '')) : '';
           const rowId = (r.row != null ? r.row : r.rowIndex);
+          const txnRow = txn
+            ? `<div class="kv"><div class="k">Transaction</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>`
+            : `<div class="kv"><div class="k">Transaction</div><div class="v">(none)</div></div>`;
+          const payNameRow = payName
+            ? `<div class="kv"><div class="k">PayPal name</div><div class="v">${payName}</div></div>`
+            : '';
+          const ppLabel = (ppStatus === 'OK') ? 'OK' : (ppStatus === 'NO' ? 'NO' : (ppStatus === 'NOT_FOUND' ? 'NOT FOUND' : (ppStatus === 'ERROR' ? 'ERROR' : '')));
+          const ppColor = (ppStatus === 'OK') ? '#00cc00' : (ppStatus === 'NO' ? '#ff4444' : (ppStatus === 'NOT_FOUND' ? '#ffa500' : (ppStatus === 'ERROR' ? '#ff4444' : '#00f9f9')));
+          const ppDetails = [
+            (ppAmount ? ('Amount: ' + ppAmount + (ppCurrency ? (' ' + ppCurrency) : '')) : ''),
+            (ppPayer ? ('Payer: ' + ppPayer) : ''),
+            (ppTxn ? ('Txn (mail): ' + ppTxn) : ''),
+            (ppDate ? ('Date: ' + ppDate) : ''),
+            (ppSubj ? ('Subj: ' + ppSubj) : '')
+          ].filter(Boolean).join(' | ');
+          const ppRow = ppLabel
+            ? `<div class="kv"><div class="k">PayPal check</div><div class="v"><span style="color:${ppColor};font-weight:900">${ppLabel}</span>${ppDetails ? ('<div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">' + ppDetails + '</div>') : ''}</div></div>`
+            : '';
           return `
             <div class="item" id="row_${rowId}" style="border-left-color:${border}">
               <div style="font-weight:800">${r.email || ''}${badge}</div>
               <div class="kv"><div class="k">Row</div><div class="v">${rowId}</div></div>
-              <div class="kv"><div class="k">Transaction</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>
               <div class="kv"><div class="k">Payment email</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>
+              ${payNameRow}
+              ${ppRow}
+              ${txnRow}
               <div class="kv"><div class="k">UID</div><div class="v">${r.uid || ''}</div></div>
               <div class="actions">
                 <button class="aOk" onclick="approve(${rowId})">Approve & Send</button>
