@@ -159,7 +159,18 @@
           const key = (r && (r.row != null ? r.row : r.rowIndex));
           if (key != null) lastByRowIndex[key] = r;
         });
-        root.innerHTML = items.map(r => {
+        const headerNote = `
+          <div class="kv" style="margin-top:12px">
+            <div class="k">Info</div>
+            <div class="v" style="color:#ffa500;white-space:normal;font-family:inherit">
+              This page shows <b>pending</b> requests only. If a request is listed here, the <b>password email has NOT been sent yet</b>.
+              <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">
+                Use <b>Approve & Send</b> only when the payment check is <b>OK</b>. If the check is <b>NOT FOUND</b>/<b>NO</b>, do not approve: the system did not find a matching payment.
+              </div>
+            </div>
+          </div>
+        `;
+        root.innerHTML = headerNote + items.map(r => {
           const isMig = (String(r.type || '').toUpperCase() === 'MIGRATION') || (String(r.action || '').toLowerCase() === 'migration');
           const badge = isMig ? '<span class="badge bMig">MIGRATION</span>' : '<span class="badge bNew">NEW</span>';
           const border = isMig ? '#ffa500' : '#00f9f9';
@@ -170,12 +181,22 @@
           const ppStatus = r.paypal_check_status || r.paypalCheckStatus || '';
           const ppAmount = r.paypal_check_amount || r.paypalCheckAmount || '';
           const ppCurrency = r.paypal_check_currency || r.paypalCheckCurrency || '';
+          const ppAmountOk = r.paypal_check_amount_ok || r.paypalCheckAmountOk || '';
           const ppPayer = r.paypal_check_payer || r.paypalCheckPayer || '';
           const ppSubj = r.paypal_check_subject || r.paypalCheckSubject || '';
           const ppDate = r.paypal_check_date || r.paypalCheckDate || '';
           const ppTxn = r.paypal_check_extracted_txn || r.paypalCheckExtractedTxn || '';
+
+          const method = (r.payment_method || r.paymentMethod || 'paypal');
+          const ghUser = r.github_user || r.githubUser || '';
+          const ghStatus = r.github_check_status || r.githubCheckStatus || '';
+          const ghAmount = r.github_check_amount || r.githubCheckAmount || '';
+          const ghCurrency = r.github_check_currency || r.githubCheckCurrency || '';
+          const ghTier = r.github_check_tier || r.githubCheckTier || '';
           const payLink = txn ? ('https://www.paypal.com/activity/payment/' + encodeURIComponent(txn || '')) : '';
           const rowId = (r.row != null ? r.row : r.rowIndex);
+          const methodNorm = (String(method || 'paypal').toLowerCase() === 'github') ? 'github' : 'paypal';
+          const methodLabel = methodNorm === 'github' ? 'GitHub Sponsors' : 'PayPal';
           const txnRow = txn
             ? `<div class="kv"><div class="k">Transaction</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>`
             : `<div class="kv"><div class="k">Transaction</div><div class="v">(none)</div></div>`;
@@ -186,21 +207,66 @@
           const ppColor = (ppStatus === 'OK') ? '#00cc00' : (ppStatus === 'NO' ? '#ff4444' : (ppStatus === 'NOT_FOUND' ? '#ffa500' : (ppStatus === 'ERROR' ? '#ff4444' : '#00f9f9')));
           const ppDetails = [
             (ppAmount ? ('Amount: ' + ppAmount + (ppCurrency ? (' ' + ppCurrency) : '')) : ''),
+            (ppAmountOk ? ('Amount accepted: ' + ppAmountOk) : ''),
             (ppPayer ? ('Payer: ' + ppPayer) : ''),
             (ppTxn ? ('Txn (mail): ' + ppTxn) : ''),
             (ppDate ? ('Date: ' + ppDate) : ''),
             (ppSubj ? ('Subj: ' + ppSubj) : '')
           ].filter(Boolean).join(' | ');
-          const ppRow = ppLabel
+          const ppRow = (method !== 'github') && ppLabel
             ? `<div class="kv"><div class="k">PayPal check</div><div class="v"><span style="color:${ppColor};font-weight:900">${ppLabel}</span>${ppDetails ? ('<div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">' + ppDetails + '</div>') : ''}</div></div>`
             : '';
+
+          const ghLabel = (ghStatus === 'OK') ? 'OK' : (ghStatus === 'NO' ? 'NO' : (ghStatus === 'NOT_FOUND' ? 'NOT FOUND' : (ghStatus === 'ERROR' ? 'ERROR' : '')));
+          const ghColor = (ghStatus === 'OK') ? '#00cc00' : (ghStatus === 'NO' ? '#ff4444' : (ghStatus === 'NOT_FOUND' ? '#ffa500' : (ghStatus === 'ERROR' ? '#ff4444' : '#00f9f9')));
+          const ghDetails = [
+            (ghUser ? ('User: ' + ghUser) : ''),
+            (ghAmount ? ('Amount: ' + ghAmount + (ghCurrency ? (' ' + ghCurrency) : '')) : ''),
+            (ghTier ? ('Tier: ' + ghTier) : '')
+          ].filter(Boolean).join(' | ');
+          const ghRow = (method === 'github') && ghLabel
+            ? `<div class="kv"><div class="k">GitHub Sponsors</div><div class="v"><span style="color:${ghColor};font-weight:900">${ghLabel}</span>${ghDetails ? ('<div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">' + ghDetails + '</div>') : ''}</div></div>`
+            : '';
+
+          const checkStatus = (methodNorm === 'github') ? String(ghStatus || '') : String(ppStatus || '');
+          const checkLabel = (checkStatus === 'OK') ? 'OK' : (checkStatus === 'NO' ? 'NO' : (checkStatus === 'NOT_FOUND' ? 'NOT FOUND' : (checkStatus === 'ERROR' ? 'ERROR' : 'UNKNOWN')));
+          const checkColor = (checkLabel === 'OK') ? '#00cc00' : (checkLabel === 'NO' ? '#ff4444' : (checkLabel === 'NOT FOUND' ? '#ffa500' : (checkLabel === 'ERROR' ? '#ff4444' : '#00f9f9')));
+          const statusHelp = (checkLabel === 'OK')
+            ? 'Payment match found. You can approve to send the password email.'
+            : (checkLabel === 'NOT FOUND')
+              ? 'No payment match found yet. Do NOT approve: password email must NOT be sent.'
+              : (checkLabel === 'NO')
+                ? 'Payment check found something but it does NOT match (wrong user/email/name/tier). Do NOT approve.'
+                : (checkLabel === 'ERROR')
+                  ? 'Payment check error. Investigate configuration (Gmail check / GitHub token) before approving.'
+                  : 'Payment check not available yet.';
+          const statusRow = `
+            <div class="kv">
+              <div class="k">Status</div>
+              <div class="v" style="white-space:normal;font-family:inherit">
+                <span style="color:#ffa500;font-weight:900">PENDING</span> — password email <b>NOT SENT</b><br/>
+                <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">
+                  Method: <b>${methodLabel}</b> | Payment check: <span style="color:${checkColor};font-weight:900">${checkLabel}</span><br/>
+                  ${statusHelp}
+                </div>
+              </div>
+            </div>
+          `;
+
+          const methodRow = (methodNorm === 'github')
+            ? `<div class="kv"><div class="k">Payment method</div><div class="v">GitHub Sponsors</div></div>
+               <div class="kv"><div class="k">GitHub username</div><div class="v">${ghUser || '(missing)'}</div></div>`
+            : `<div class="kv"><div class="k">Payment method</div><div class="v">PayPal</div></div>
+               <div class="kv"><div class="k">PayPal payment email</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`;
           return `
             <div class="item" id="row_${rowId}" style="border-left-color:${border}">
               <div style="font-weight:800">${r.email || ''}${badge}</div>
               <div class="kv"><div class="k">Row</div><div class="v">${rowId}</div></div>
-              <div class="kv"><div class="k">Payment email</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>
+              ${statusRow}
+              ${methodRow}
               ${payNameRow}
               ${ppRow}
+              ${ghRow}
               ${txnRow}
               <div class="kv"><div class="k">UID</div><div class="v">${r.uid || ''}</div></div>
               <div class="actions">
