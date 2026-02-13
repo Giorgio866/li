@@ -175,7 +175,7 @@
                 <b>Quando NON approvare:</b> Se il controllo è <b>NON TROVATO</b> o <b>NO</b>, non approvare: il sistema non ha trovato un pagamento corrispondente (email, nome, cognome o importo non coincidono).
               </div>
               <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.4">
-                <b>Metodi:</b> PayPal (pagamento diretto), Colletta (4fund/raccolta fondi), GitHub Sponsors.
+                <b>Metodi:</b> PayPal (pagamento diretto), Colletta PayPal (raccolta fondi), GitHub Sponsors.
               </div>
             </div>
           </div>
@@ -206,7 +206,7 @@
           const payLink = txn ? ('https://www.paypal.com/activity/payment/' + encodeURIComponent(txn || '')) : '';
           const rowId = (r.row != null ? r.row : r.rowIndex);
           const methodNorm = (String(method || 'paypal').toLowerCase() === 'github') ? 'github' : ((String(method || '').toLowerCase() === 'colletta') ? 'colletta' : 'paypal');
-          const methodLabel = methodNorm === 'github' ? 'GitHub Sponsors' : (methodNorm === 'colletta' ? 'Colletta (4fund)' : 'PayPal');
+          const methodLabel = methodNorm === 'github' ? 'GitHub Sponsors' : (methodNorm === 'colletta' ? 'Colletta PayPal' : 'PayPal');
           const txnRow = txn
             ? `<div class="kv"><div class="k">Codice transazione</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>`
             : `<div class="kv"><div class="k">Codice transazione</div><div class="v">(nessuno)</div></div>`;
@@ -269,7 +269,7 @@
             ? `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">GitHub Sponsors</div></div>
                <div class="kv"><div class="k">Username GitHub</div><div class="v">${ghUser || '(mancante)'}</div></div>`
             : (methodNorm === 'colletta')
-            ? `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">Colletta (4fund)</div></div>
+            ? `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">Colletta PayPal</div></div>
                <div class="kv"><div class="k">Email pagamento</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`
             : `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">PayPal</div></div>
                <div class="kv"><div class="k">Email pagamento PayPal</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`;
