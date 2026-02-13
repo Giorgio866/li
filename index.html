@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lumina PRO Admin</title>
+    <title>Lumina PRO - Pannello Admin</title>
     <style>
       body{margin:0;padding:12px;background:#0f1220;color:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
       .card{max-width:720px;margin:0 auto;background:rgba(255,255,255,.06);border-radius:12px;padding:14px}
@@ -33,14 +33,14 @@
   </head>
   <body>
     <div class="card">
-      <h1>Lumina PRO Admin</h1>
+      <h1>Lumina PRO - Pannello Admin</h1>
       <div class="row">
-        <input id="gasUrl" placeholder="GAS URL (…/exec)" />
-        <input id="secret" type="password" placeholder="Admin secret" />
+        <input id="gasUrl" placeholder="URL GAS (…/exec)" />
+        <input id="secret" type="password" placeholder="Segreto admin" />
       </div>
       <div class="row" style="margin-top:8px">
-        <button class="btn" id="saveBtn">Save</button>
-        <button class="btn2" id="refreshBtn">Refresh</button>
+        <button class="btn" id="saveBtn">Salva</button>
+        <button class="btn2" id="refreshBtn">Aggiorna</button>
         <button class="btn2" id="pingBtn">Ping</button>
         <button class="btn2" id="resetBtn">Reset</button>
       </div>
@@ -88,7 +88,7 @@
       function save() {
         localStorage.setItem('lumina_gas_url', document.getElementById('gasUrl').value.trim());
         localStorage.setItem('lumina_admin_secret', document.getElementById('secret').value.trim());
-        show('Saved', 'ok');
+        show('Salvato', 'ok');
       }
 
       function getGasUrl_() {
@@ -111,12 +111,12 @@
           // ignore
         }
         loadSaved();
-        show('Reset: defaults loaded', 'ok');
+        show('Reset: valori predefiniti caricati', 'ok');
       }
 
       async function ping() {
         const gasUrl = getGasUrl_();
-        if (!gasUrl) return show('Set GAS URL first', 'err');
+        if (!gasUrl) return show('Inserisci prima l\'URL GAS', 'err');
         const url = gasUrl;
         try {
           const data = await jsonp(url);
@@ -130,7 +130,7 @@
       async function refresh() {
         const gasUrl = getGasUrl_();
         const secret = getSecret_();
-        if (!gasUrl || !secret) return show('Set GAS URL and secret', 'err');
+        if (!gasUrl || !secret) return show('Inserisci URL GAS e segreto admin', 'err');
         const url = gasUrl + '?action=list&secret=' + encodeURIComponent(secret);
         document.getElementById('list').innerHTML = '';
         try {
@@ -138,7 +138,11 @@
           if (data && data.status && !data.success) {
             throw new Error('Wrong endpoint/deploy (got status response). Open GAS /exec to check version.');
           }
-          if (!data || !data.success) throw new Error((data && data.error) || 'Unauthorized (secret wrong or not set in GAS)');
+          if (!data || !data.success) {
+            const err = (data && data.error) || 'unauthorized';
+            const msg = (data && data.message) ? (err + ': ' + data.message) : err;
+            throw new Error(msg);
+          }
           render((data.items || data.requests || []));
           show('OK', 'ok');
         } catch (e) {
@@ -151,7 +155,7 @@
       function render(items) {
         const root = document.getElementById('list');
         if (!items.length) {
-          root.innerHTML = '<div style="margin-top:12px;color:#aaa">No pending requests</div>';
+          root.innerHTML = '<div style="margin-top:12px;color:#aaa">Nessuna richiesta in attesa</div>';
           return;
         }
         lastByRowIndex = {};
@@ -161,11 +165,17 @@
         });
         const headerNote = `
           <div class="kv" style="margin-top:12px">
-            <div class="k">Info</div>
+            <div class="k">Informazioni</div>
             <div class="v" style="color:#ffa500;white-space:normal;font-family:inherit">
-              This page shows <b>pending</b> requests only. If a request is listed here, the <b>password email has NOT been sent yet</b>.
-              <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">
-                Use <b>Approve & Send</b> only when the payment check is <b>OK</b>. If the check is <b>NOT FOUND</b>/<b>NO</b>, do not approve: the system did not find a matching payment.
+              Questa pagina mostra solo le richieste <b>in attesa</b>. Se una richiesta è qui elencata, <b>l'email con la password NON è ancora stata inviata</b>.
+              <div style="margin-top:8px;color:#cfefff;font-size:12px;line-height:1.4">
+                <b>Quando approvare:</b> Usa <b>Approva e Invia</b> solo quando il controllo pagamento è <b>OK</b> (verifica PayPal, Colletta o GitHub trovata e corrispondente).
+              </div>
+              <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.4">
+                <b>Quando NON approvare:</b> Se il controllo è <b>NON TROVATO</b> o <b>NO</b>, non approvare: il sistema non ha trovato un pagamento corrispondente (email, nome, cognome o importo non coincidono).
+              </div>
+              <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.4">
+                <b>Metodi:</b> PayPal (pagamento diretto), Colletta (4fund/raccolta fondi), GitHub Sponsors.
               </div>
             </div>
           </div>
@@ -195,33 +205,35 @@
           const ghTier = r.github_check_tier || r.githubCheckTier || '';
           const payLink = txn ? ('https://www.paypal.com/activity/payment/' + encodeURIComponent(txn || '')) : '';
           const rowId = (r.row != null ? r.row : r.rowIndex);
-          const methodNorm = (String(method || 'paypal').toLowerCase() === 'github') ? 'github' : 'paypal';
-          const methodLabel = methodNorm === 'github' ? 'GitHub Sponsors' : 'PayPal';
+          const methodNorm = (String(method || 'paypal').toLowerCase() === 'github') ? 'github' : ((String(method || '').toLowerCase() === 'colletta') ? 'colletta' : 'paypal');
+          const methodLabel = methodNorm === 'github' ? 'GitHub Sponsors' : (methodNorm === 'colletta' ? 'Colletta (4fund)' : 'PayPal');
           const txnRow = txn
-            ? `<div class="kv"><div class="k">Transaction</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>`
-            : `<div class="kv"><div class="k">Transaction</div><div class="v">(none)</div></div>`;
+            ? `<div class="kv"><div class="k">Codice transazione</div><div class="v"><a href="${payLink}" target="_blank" rel="noreferrer">${txn}</a></div></div>`
+            : `<div class="kv"><div class="k">Codice transazione</div><div class="v">(nessuno)</div></div>`;
           const payNameRow = payName
-            ? `<div class="kv"><div class="k">PayPal name</div><div class="v">${payName}</div></div>`
+            ? `<div class="kv"><div class="k">Nome partecipante</div><div class="v">${payName}</div></div>`
             : '';
-          const ppLabel = (ppStatus === 'OK') ? 'OK' : (ppStatus === 'NO' ? 'NO' : (ppStatus === 'NOT_FOUND' ? 'NOT FOUND' : (ppStatus === 'ERROR' ? 'ERROR' : '')));
+          const ppLabel = (ppStatus === 'OK') ? 'OK' : (ppStatus === 'NO' ? 'NO' : (ppStatus === 'NOT_FOUND' ? 'NON TROVATO' : (ppStatus === 'ERROR' ? 'ERRORE' : '')));
           const ppColor = (ppStatus === 'OK') ? '#00cc00' : (ppStatus === 'NO' ? '#ff4444' : (ppStatus === 'NOT_FOUND' ? '#ffa500' : (ppStatus === 'ERROR' ? '#ff4444' : '#00f9f9')));
+          const checkLabelIt = (ppStatus === 'OK') ? 'OK' : (ppStatus === 'NO' ? 'NO' : (ppStatus === 'NOT_FOUND' ? 'NON TROVATO' : (ppStatus === 'ERROR' ? 'ERRORE' : '')));
           const ppDetails = [
-            (ppAmount ? ('Amount: ' + ppAmount + (ppCurrency ? (' ' + ppCurrency) : '')) : ''),
-            (ppAmountOk ? ('Amount accepted: ' + ppAmountOk) : ''),
-            (ppPayer ? ('Payer: ' + ppPayer) : ''),
-            (ppTxn ? ('Txn (mail): ' + ppTxn) : ''),
-            (ppDate ? ('Date: ' + ppDate) : ''),
-            (ppSubj ? ('Subj: ' + ppSubj) : '')
+            (ppAmount ? ('Importo: ' + ppAmount + (ppCurrency ? (' ' + ppCurrency) : '')) : ''),
+            (ppAmountOk ? ('Importo accettato: ' + ppAmountOk) : ''),
+            (ppPayer ? ('Pagante: ' + ppPayer) : ''),
+            (ppTxn ? ('Txn (da mail): ' + ppTxn) : ''),
+            (ppDate ? ('Data: ' + ppDate) : ''),
+            (ppSubj ? ('Oggetto: ' + ppSubj) : '')
           ].filter(Boolean).join(' | ');
-          const ppRow = (method !== 'github') && ppLabel
-            ? `<div class="kv"><div class="k">PayPal check</div><div class="v"><span style="color:${ppColor};font-weight:900">${ppLabel}</span>${ppDetails ? ('<div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">' + ppDetails + '</div>') : ''}</div></div>`
+          const ppCheckLabel = methodNorm === 'colletta' ? 'Controllo Colletta' : 'Controllo PayPal';
+          const ppRow = (methodNorm !== 'github') && ppLabel
+            ? `<div class="kv"><div class="k">${ppCheckLabel}</div><div class="v"><span style="color:${ppColor};font-weight:900">${checkLabelIt}</span>${ppDetails ? ('<div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">' + ppDetails + '</div>') : ''}</div></div>`
             : '';
 
           const ghLabel = (ghStatus === 'OK') ? 'OK' : (ghStatus === 'NO' ? 'NO' : (ghStatus === 'NOT_FOUND' ? 'NOT FOUND' : (ghStatus === 'ERROR' ? 'ERROR' : '')));
           const ghColor = (ghStatus === 'OK') ? '#00cc00' : (ghStatus === 'NO' ? '#ff4444' : (ghStatus === 'NOT_FOUND' ? '#ffa500' : (ghStatus === 'ERROR' ? '#ff4444' : '#00f9f9')));
           const ghDetails = [
-            (ghUser ? ('User: ' + ghUser) : ''),
-            (ghAmount ? ('Amount: ' + ghAmount + (ghCurrency ? (' ' + ghCurrency) : '')) : ''),
+            (ghUser ? ('Utente: ' + ghUser) : ''),
+            (ghAmount ? ('Importo: ' + ghAmount + (ghCurrency ? (' ' + ghCurrency) : '')) : ''),
             (ghTier ? ('Tier: ' + ghTier) : '')
           ].filter(Boolean).join(' | ');
           const ghRow = (method === 'github') && ghLabel
@@ -232,21 +244,21 @@
           const checkLabel = (checkStatus === 'OK') ? 'OK' : (checkStatus === 'NO' ? 'NO' : (checkStatus === 'NOT_FOUND' ? 'NOT FOUND' : (checkStatus === 'ERROR' ? 'ERROR' : 'UNKNOWN')));
           const checkColor = (checkLabel === 'OK') ? '#00cc00' : (checkLabel === 'NO' ? '#ff4444' : (checkLabel === 'NOT FOUND' ? '#ffa500' : (checkLabel === 'ERROR' ? '#ff4444' : '#00f9f9')));
           const statusHelp = (checkLabel === 'OK')
-            ? 'Payment match found. You can approve to send the password email.'
+            ? 'Pagamento trovato e corrispondente. Puoi approvare per inviare l\'email con la password.'
             : (checkLabel === 'NOT FOUND')
-              ? 'No payment match found yet. Do NOT approve: password email must NOT be sent.'
+              ? 'Nessun pagamento trovato. NON approvare: l\'email con la password NON deve essere inviata.'
               : (checkLabel === 'NO')
-                ? 'Payment check found something but it does NOT match (wrong user/email/name/tier). Do NOT approve.'
+                ? 'Il controllo ha trovato qualcosa ma NON corrisponde (utente/email/nome/importo diversi). NON approvare.'
                 : (checkLabel === 'ERROR')
-                  ? 'Payment check error. Investigate configuration (Gmail check / GitHub token) before approving.'
-                  : 'Payment check not available yet.';
+                  ? 'Errore nel controllo. Verifica la configurazione (Gmail / token GitHub) prima di approvare.'
+                  : 'Controllo pagamento non ancora disponibile.';
           const statusRow = `
             <div class="kv">
-              <div class="k">Status</div>
+              <div class="k">Stato</div>
               <div class="v" style="white-space:normal;font-family:inherit">
-                <span style="color:#ffa500;font-weight:900">PENDING</span> — password email <b>NOT SENT</b><br/>
+                <span style="color:#ffa500;font-weight:900">IN ATTESA</span> — email password <b>NON INVIATA</b><br/>
                 <div style="margin-top:6px;color:#cfefff;font-size:12px;line-height:1.35">
-                  Method: <b>${methodLabel}</b> | Payment check: <span style="color:${checkColor};font-weight:900">${checkLabel}</span><br/>
+                  Metodo: <b>${methodLabel}</b> | Controllo: <span style="color:${checkColor};font-weight:900">${checkLabel}</span><br/>
                   ${statusHelp}
                 </div>
               </div>
@@ -254,14 +266,17 @@
           `;
 
           const methodRow = (methodNorm === 'github')
-            ? `<div class="kv"><div class="k">Payment method</div><div class="v">GitHub Sponsors</div></div>
-               <div class="kv"><div class="k">GitHub username</div><div class="v">${ghUser || '(missing)'}</div></div>`
-            : `<div class="kv"><div class="k">Payment method</div><div class="v">PayPal</div></div>
-               <div class="kv"><div class="k">PayPal payment email</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`;
+            ? `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">GitHub Sponsors</div></div>
+               <div class="kv"><div class="k">Username GitHub</div><div class="v">${ghUser || '(mancante)'}</div></div>`
+            : (methodNorm === 'colletta')
+            ? `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">Colletta (4fund)</div></div>
+               <div class="kv"><div class="k">Email pagamento</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`
+            : `<div class="kv"><div class="k">Metodo pagamento</div><div class="v">PayPal</div></div>
+               <div class="kv"><div class="k">Email pagamento PayPal</div><div class="v">${r.paymentEmail || r.payment_email || ''}</div></div>`;
           return `
             <div class="item" id="row_${rowId}" style="border-left-color:${border}">
               <div style="font-weight:800">${r.email || ''}${badge}</div>
-              <div class="kv"><div class="k">Row</div><div class="v">${rowId}</div></div>
+              <div class="kv"><div class="k">Riga</div><div class="v">${rowId}</div></div>
               ${statusRow}
               ${methodRow}
               ${payNameRow}
@@ -270,8 +285,8 @@
               ${txnRow}
               <div class="kv"><div class="k">UID</div><div class="v">${r.uid || ''}</div></div>
               <div class="actions">
-                <button class="aOk" onclick="approve(${rowId})">Approve & Send</button>
-                <button class="aNo" onclick="rejectReq(${rowId})">Reject</button>
+                <button class="aOk" onclick="approve(${rowId})">Approva e Invia</button>
+                <button class="aNo" onclick="rejectReq(${rowId})">Rifiuta</button>
               </div>
             </div>
           `;
@@ -281,14 +296,18 @@
       async function approve(rowIndex) {
         const gasUrl = getGasUrl_();
         const secret = getSecret_();
-        if (!gasUrl || !secret) return show('Set GAS URL and secret', 'err');
+        if (!gasUrl || !secret) return show('Inserisci URL GAS e segreto admin', 'err');
         // Support both scripts: lite uses "row", legacy uses "rowIndex"
         const url = gasUrl + '?action=approve&secret=' + encodeURIComponent(secret) + '&row=' + rowIndex + '&rowIndex=' + rowIndex;
         try {
           const data = await jsonp(url);
-          if (!data || !data.success) throw new Error((data && data.error) || 'Failed');
+          if (!data || !data.success) {
+            const err = (data && data.error) || 'Failed';
+            const msg = (data && data.message) ? (err + ': ' + data.message) : err;
+            throw new Error(msg);
+          }
           const email = (lastByRowIndex[rowIndex] && lastByRowIndex[rowIndex].email) ? lastByRowIndex[rowIndex].email : '';
-          show('Sent ' + (email ? ('to ' + email) : ''), 'ok');
+          show('Inviata a ' + (email ? email : ''), 'ok');
           setTimeout(refresh, 1200);
         } catch (e) {
           show(String(e.message || e), 'err');
@@ -296,23 +315,27 @@
       }
 
       async function rejectReq(rowIndex) {
-        if (!confirm('Reject?')) return;
+        if (!confirm('Rifiutare questa richiesta?')) return;
         const gasUrl = getGasUrl_();
         const secret = getSecret_();
-        if (!gasUrl || !secret) return show('Set GAS URL and secret', 'err');
+        if (!gasUrl || !secret) return show('Inserisci URL GAS e segreto admin', 'err');
         // Support both scripts: lite uses "row", legacy uses "rowIndex"
         const url = gasUrl + '?action=reject&secret=' + encodeURIComponent(secret) + '&row=' + rowIndex + '&rowIndex=' + rowIndex;
         try {
           const data = await jsonp(url);
-          if (!data || !data.success) throw new Error((data && data.error) || 'Failed');
-          show('Rejected', 'ok');
+          if (!data || !data.success) {
+            const err = (data && data.error) || 'Failed';
+            const msg = (data && data.message) ? (err + ': ' + data.message) : err;
+            throw new Error(msg);
+          }
+          show('Richiesta rifiutata', 'ok');
           setTimeout(refresh, 800);
         } catch (e) {
           show(String(e.message || e), 'err');
         }
       }
 
-      document.getElementById('saveBtn').addEventListener('click', () => { save(); refresh(); });
+      document.getElementById('saveBtn').addEventListener('click', () => { save(); setTimeout(() => refresh(), 0); });
       document.getElementById('refreshBtn').addEventListener('click', refresh);
       document.getElementById('pingBtn').addEventListener('click', ping);
       document.getElementById('resetBtn').addEventListener('click', resetSaved);
